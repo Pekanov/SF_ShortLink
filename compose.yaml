@@ -1,0 +1,10 @@
+services:
+  postgres:
+    container_name: 'ShortLinkDb'
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=ShortLinkDb'
+      - 'POSTGRES_PASSWORD=7757'
+      - 'POSTGRES_USER=user'
+    ports:
+      - '5432:5432'
