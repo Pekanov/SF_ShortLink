@@ -5,6 +5,7 @@ import lombok.*;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,12 +21,21 @@ public class ShortenedLink {
     private Long id;
 
     private String originalUrl;
+
+    @Column(unique = true)
     private String shortUrl;
-    private UUID userId;
 
     private Integer maxClicks;
 
+    private Integer clicksCount;
+
     private LocalDateTime expirationDate;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @OneToMany(mappedBy = "shortenedLink", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserNotification> userNotifications;
 
 }

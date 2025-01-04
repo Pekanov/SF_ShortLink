@@ -5,9 +5,10 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class CreateShortLinkDTO {
+public class UpdateShortLinkDTO {
     private UUID userId;
-    private String originalUrl;
+
+    private String shortLink;
     private Integer maxClicks;
     private Integer durationDay;
 }
