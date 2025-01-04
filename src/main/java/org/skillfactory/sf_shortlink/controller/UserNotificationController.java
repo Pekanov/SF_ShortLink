@@ -23,5 +23,4 @@ public class UserNotificationController {
         return ResponseEntity.ok(userNotificationService.getUserNotifications(userId));
     }
 
-
 }
