@@ -17,6 +17,7 @@ import java.util.UUID;
 public class LinkService {
 
     private final ShortenedLinkRepository shortenedLinkRepository;
+    private final UserNotificationService userNotificationService;
 
     public ShortenedLink createShortenedLink(String originalUrl, User user, Integer maxClicks, Duration ttl) {
         String shortUrl = generateShortUrl();
@@ -48,14 +49,19 @@ public class LinkService {
     }
 
     public void deleteLink(DeleteLinkDTO dto) {
+        ShortenedLink linkToDelete = null;
         if (dto.getShortUrl() != null) {
-            shortenedLinkRepository.findByShortUrl(dto.getShortUrl())
-                    .ifPresent(shortenedLinkRepository::delete);
+            linkToDelete = shortenedLinkRepository.findByShortUrl(dto.getShortUrl())
+                    .orElseThrow(() -> new RuntimeException("Shortened link not found"));
         } else if (dto.getOriginalUrl() != null) {
-            shortenedLinkRepository.findByOriginalUrl(dto.getOriginalUrl())
-                    .ifPresent(shortenedLinkRepository::delete);
-        } else {
-            throw new RuntimeException("Both shortUrl and originalUrl are null");
+            linkToDelete = shortenedLinkRepository.findByOriginalUrl(dto.getOriginalUrl())
+                    .orElseThrow(() -> new RuntimeException("Original link not found"));
+        }
+
+        if (linkToDelete != null) {
+            userNotificationService.addNotification(linkToDelete, linkToDelete.getUser().getId(),
+                    "Link has been deleted by the user.");
+            shortenedLinkRepository.delete(linkToDelete);
         }
     }
 
@@ -68,20 +74,30 @@ public class LinkService {
                 .orElseThrow(() -> new Exception("Link not found"));
 
         if (link.getClicksCount() >= link.getMaxClicks()) {
+            userNotificationService.addNotification(link, link.getUser().getId(),
+                    "Maximum number of clicks for the link has been exceeded.");
+            shortenedLinkRepository.delete(link);
             throw new Exception("Max clicks exceeded");
+
         }
 
         if (LocalDateTime.now().isAfter(link.getExpirationDate())) {
+            userNotificationService.addNotification(link, link.getUser().getId(),
+                    "The link has expired.");
+            shortenedLinkRepository.delete(link);
             throw new Exception("Link expired");
         }
 
         link.setClicksCount(link.getClicksCount() + 1);
-
         return shortenedLinkRepository.save(link).getOriginalUrl();
     }
 
     public void cleanupExpiredLinks() {
         List<ShortenedLink> expiredLinks = shortenedLinkRepository.findByExpirationDateBefore(LocalDateTime.now());
+        for (ShortenedLink link : expiredLinks) {
+            userNotificationService.addNotification(link, link.getUser().getId(),
+                    "The link has expired and has been automatically deleted.");
+        }
         shortenedLinkRepository.deleteAll(expiredLinks);
     }
 }
